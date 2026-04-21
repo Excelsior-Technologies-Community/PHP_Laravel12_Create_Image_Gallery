@@ -418,14 +418,25 @@ PHP_Laravel12_Create_Image_Gallery/
 
 <img width="1919" height="1026" alt="Screenshot 2026-01-07 171435" src="https://github.com/user-attachments/assets/a9f73c80-2589-4fa9-9f2c-9f240d2853f0" />
 
+<<<<<<< HEAD
  **Delete Image**
 
  <img width="1917" height="1038" alt="Screenshot 2026-01-07 171921" src="https://github.com/user-attachments/assets/cc9cb044-3d60-4ce1-b342-89ce4522c154" />
 
  <img width="1919" height="1030" alt="Screenshot 2026-01-07 171931" src="https://github.com/user-attachments/assets/40ed0a57-b505-41ca-96d6-a6ebe0254e63" />
+=======
+**Delete Image**
+
+<img width="1917" height="1038" alt="Screenshot 2026-01-07 171921" src="https://github.com/user-attachments/assets/cc9cb044-3d60-4ce1-b342-89ce4522c154" />
+
+<img width="1919" height="1030" alt="Screenshot 2026-01-07 171931" src="https://github.com/user-attachments/assets/40ed0a57-b505-41ca-96d6-a6ebe0254e63" />
+>>>>>>> development
 
 
 ---
 
 Your PHP_Laravel12_Create_Image_Gallery Project is Now Ready!
+<<<<<<< HEAD
 
+=======
+>>>>>>> development
