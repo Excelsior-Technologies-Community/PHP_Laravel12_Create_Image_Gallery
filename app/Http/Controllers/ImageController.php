@@ -4,110 +4,107 @@ namespace App\Http\Controllers;
 
 use App\Models\Image;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\File;
 
 class ImageController extends Controller
 {
-    /**
-     * Display all images (INDEX + SEARCH + PAGINATION)
-     */
     public function index(Request $request)
     {
         $query = Image::query();
 
-        // SEARCH
         if ($request->search) {
             $query->where('title', 'like', '%' . $request->search . '%');
         }
 
-        // PAGINATION
         $images = $query->latest()->paginate(8);
 
         return view('gallery.index', compact('images'));
     }
 
-    /**
-     * Show create image form
-     */
     public function create()
     {
         return view('gallery.create');
     }
 
-    /**
-     * Store uploaded image
-     */
     public function store(Request $request)
     {
-        $request->validate([
-            'title' => 'required|string|max:255',
-            'image' => 'required|image|mimes:jpg,jpeg,png,gif,webp|max:2048',
-        ]);
+        try {
+            $request->validate([
+                'title' => 'required|string|max:255',
+                'file' => 'required',
+                'file.*' => 'image|mimes:jpg,jpeg,png,gif,webp|max:20480',
+            ]);
 
-        $file = $request->file('image');
-        $filename = time() . '_' . $file->getClientOriginalName();
+            if ($request->hasFile('file')) {
+                $path = public_path('images');
+                if (!File::isDirectory($path)) {
+                    File::makeDirectory($path, 0777, true, true);
+                }
 
-        $file->move(public_path('images'), $filename);
+                foreach ($request->file('file') as $file) {
+                    $filename = time() . '_' . uniqid() . '.' . $file->getClientOriginalExtension();
+                    
+                    $file->move($path, $filename);
 
-        Image::create([
-            'title' => $request->title,
-            'filename' => $filename,
-        ]);
-
-        return redirect()->route('gallery.index')
-            ->with('success', 'Image uploaded successfully');
+                    Image::create([
+                        'title' => $request->title,
+                        'filename' => $filename,
+                    ]);
+                }
+                return response()->json(['success' => 'Done']);
+            }
+        } catch (\Throwable $e) {
+            return response()->json(['error' => $e->getMessage()], 500);
+        }
     }
 
-    /**
-     * Soft delete image
-     */
-    public function destroy($id)
+    public function destroy(Request $request, $id)
     {
-        $image = Image::findOrFail($id);
+        if ($request->has('ids')) {
+            Image::whereIn('id', $request->ids)->delete();
+            return back()->with('success', 'Selected images moved to trash');
+        }
 
-        $image->delete();
-
+        Image::findOrFail($id)->delete();
         return back()->with('success', 'Image moved to trash');
     }
 
-    /**
-     * DOWNLOAD IMAGE
-     */
     public function download($id)
     {
         $image = Image::findOrFail($id);
-
         $path = public_path('images/' . $image->filename);
 
-        return response()->download($path);
+        if (file_exists($path)) {
+            return response()->download($path);
+        }
+
+        return back()->with('error', 'File not found');
     }
 
-    /**
-     * SHOW TRASH
-     */
     public function trash()
     {
         $images = Image::onlyTrashed()->get();
-
         return view('gallery.trash', compact('images'));
     }
 
-    /**
-     * RESTORE IMAGE
-     */
     public function restore($id)
     {
         Image::withTrashed()->findOrFail($id)->restore();
-
         return back()->with('success', 'Image restored successfully');
     }
 
-    /**
-     * PERMANENT DELETE
-     */
+    public function bulkRestore(Request $request)
+    {
+        if ($request->ids) {
+            Image::withTrashed()->whereIn('id', $request->ids)->restore();
+            return back()->with('success', 'Selected images restored');
+        }
+        return back();
+    }
+
     public function forceDelete($id)
     {
         $image = Image::withTrashed()->findOrFail($id);
-
         $path = public_path('images/' . $image->filename);
 
         if (file_exists($path)) {
@@ -115,7 +112,22 @@ class ImageController extends Controller
         }
 
         $image->forceDelete();
-
         return back()->with('success', 'Image permanently deleted');
+    }
+
+    public function bulkForceDelete(Request $request)
+    {
+        if ($request->ids) {
+            $images = Image::withTrashed()->whereIn('id', $request->ids)->get();
+            foreach ($images as $img) {
+                $path = public_path('images/' . $img->filename);
+                if (file_exists($path)) { 
+                    unlink($path); 
+                }
+                $img->forceDelete();
+            }
+            return back()->with('success', 'Selected images deleted permanently');
+        }
+        return back();
     }
 }
